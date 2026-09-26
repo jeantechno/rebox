@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REBox · 逆向打包工具箱</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.8 20.2 7.2v9.6L12 21.2 3.8 16.8V7.2z' fill='none' stroke='%235eead4' stroke-width='1.6' stroke-linejoin='round'/%3E%3Ccircle cx='12' cy='12' r='4.2' fill='none' stroke='%2322d3ee' stroke-width='1.4'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://miaoda.feishu.cn">
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Orbitron:wght@500;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap">
+<style>
+:root{
+  --bg0:#030711; --bg1:#060d1e; --bg2:#0a1430;
+  --panel:rgba(15,26,52,.5);
+  --panel2:rgba(10,20,44,.72);
+  --line:rgba(110,225,214,.14);
+  --line2:rgba(110,225,214,.34);
+  --teal:#5eead4; --cyan:#22d3ee; --blue:#7cc0ff; --violet:#a78bfa;
+  --ink:#e9f6ff; --dim:#8fb3d9; --dim2:#5f7f9f;
+  --grad:linear-gradient(100deg,#5eead4 0%,#22d3ee 45%,#7cc0ff 78%,#a78bfa 100%);
+  --ease:cubic-bezier(.22,1,.36,1);
+  --r:18px;
+  --font-d:"Orbitron","Noto Sans SC",system-ui,sans-serif;
+  --font-c:"Noto Sans SC",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--font-c); color:var(--ink); background:var(--bg0);
+  line-height:1.65; overflow-x:hidden; -webkit-font-smoothing:antialiased;
+}
+/* 深空网格背景 */
+body::before{
+  content:""; position:fixed; inset:0; z-index:-2; pointer-events:none;
+  background:
+    linear-gradient(180deg,rgba(3,7,17,0) 0%,rgba(3,7,17,.55) 42%,rgba(4,9,22,1) 100%),
+    radial-gradient(1200px 620px at 72% -8%,rgba(34,211,238,.16),transparent 62%),
+    radial-gradient(900px 520px at 12% 108%,rgba(167,139,250,.14),transparent 60%),
+    radial-gradient(700px 500px at 50% 52%,rgba(94,234,212,.05),transparent 70%),
+    var(--bg0);
+}
+body::after{
+  content:""; position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.5;
+  background-image:
+    linear-gradient(rgba(120,210,220,.05) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(120,210,220,.05) 1px,transparent 1px);
+  background-size:56px 56px;
+  mask-image:radial-gradient(1000px 640px at 50% 0%,#000 20%,transparent 78%);
+  -webkit-mask-image:radial-gradient(1000px 640px at 50% 0%,#000 20%,transparent 78%);
+}
+::selection{background:rgba(34,211,238,.32)}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;border-radius:6px}
+a{color:var(--cyan);text-decoration:none}
+
+.wrap{max-width:1140px;margin:0 auto;padding:0 26px}
+
+/* ============ 顶栏 ============ */
+.nav{
+  position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:50;
+  width:min(1080px,calc(100% - 28px));
+  display:flex;align-items:center;gap:14px;
+  padding:10px 18px;border-radius:16px;
+  background:rgba(8,14,30,.6);
+  border:1px solid var(--line);
+  backdrop-filter:blur(18px) saturate(1.3);
+  -webkit-backdrop-filter:blur(18px) saturate(1.3);
+  box-shadow:0 10px 34px rgba(2,8,20,.55);
+}
+.nav-logo{display:flex;align-items:center;gap:9px;font-family:var(--font-d);font-weight:700;letter-spacing:.5px}
+.nav-logo svg{width:26px;height:26px;filter:drop-shadow(0 0 8px rgba(94,234,212,.55))}
+.nav-logo b{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;font-size:17px}
+.nav-links{display:flex;gap:4px;margin-left:auto}
+.nav-links a{
+  color:var(--dim);font-size:14px;padding:7px 13px;border-radius:10px;transition:color .18s var(--ease),background .18s var(--ease);
+}
+.nav-links a:hover{color:var(--ink);background:rgba(94,234,212,.09)}
+.nav-dl{
+  font-family:var(--font-d);font-size:12.5px;letter-spacing:.6px;color:#03211c;
+  background:linear-gradient(135deg,#5eead4,#22d3ee 60%,#7cc0ff);
+  padding:8px 17px;border-radius:11px;font-weight:700;transition:transform .18s var(--ease),box-shadow .18s var(--ease);
+  box-shadow:0 4px 16px rgba(34,211,238,.32);
+}
+.nav-dl:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(34,211,238,.48)}
+@media(max-width:680px){.nav-links{display:none}}
+
+/* ============ Hero ============ */
+.hero{position:relative;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
+#neb{position:absolute;inset:0;width:100%;height:100%;z-index:0}
+.hero-in{position:relative;z-index:2;text-align:center;padding:120px 22px 90px}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:8px;font-size:12.5px;letter-spacing:2.4px;color:var(--teal);
+  padding:7px 16px;border-radius:999px;border:1px solid var(--line2);
+  background:rgba(94,234,212,.06);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  text-transform:uppercase;
+}
+.hero-badge i{width:6px;height:6px;border-radius:50%;background:var(--teal);box-shadow:0 0 10px var(--teal);animation:pulse 2.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.45;transform:scale(.85)}50%{opacity:1;transform:scale(1.15)}}
+.hero-ico{width:150px;height:150px;margin:34px auto 20px;border-radius:36px;position:relative;
+  animation:breathe 5s var(--ease) infinite}
+.hero-ico img{width:100%;height:100%;border-radius:36px;object-fit:cover;
+  box-shadow:0 0 0 1px rgba(110,225,214,.28),0 18px 60px rgba(34,211,238,.26),0 0 90px rgba(34,211,238,.2)}
+@keyframes breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+.hero h1{
+  font-family:var(--font-d);font-weight:900;font-size:clamp(44px,8vw,84px);letter-spacing:.06em;line-height:1.05;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 6px 30px rgba(34,211,238,.28));
+  text-wrap:balance;
+}
+.hero .tag{
+  margin-top:16px;font-size:clamp(16px,2.4vw,21px);color:var(--dim);font-weight:300;letter-spacing:.5px;
+}
+.hero .tag b{color:var(--ink);font-weight:500}
+.hero-cta{display:flex;gap:14px;justify-content:center;margin-top:38px;flex-wrap:wrap}
+.btn{
+  font-family:var(--font-d);font-size:13.5px;letter-spacing:1.2px;font-weight:700;
+  padding:14px 30px;border-radius:14px;display:inline-flex;align-items:center;gap:9px;cursor:pointer;
+  transition:transform .2s var(--ease),box-shadow .2s var(--ease),background .2s var(--ease),border-color .2s var(--ease);
+}
+.btn svg{width:16px;height:16px}
+.btn-pri{color:#03211c;background:linear-gradient(135deg,#5eead4,#22d3ee 55%,#7cc0ff);box-shadow:0 8px 26px rgba(34,211,238,.34)}
+.btn-pri:hover{transform:translateY(-2px);box-shadow:0 14px 40px rgba(34,211,238,.5)}
+.btn-ghost{color:var(--ink);border:1px solid var(--line2);background:rgba(10,20,44,.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.btn-ghost:hover{transform:translateY(-2px);border-color:var(--cyan);box-shadow:0 10px 30px rgba(34,211,238,.16)}
+.dl-note{margin-top:16px;font-size:12.5px;color:var(--dim2);font-weight:300;letter-spacing:.3px}
+.hero-meta{display:flex;gap:26px;justify-content:center;margin-top:52px;flex-wrap:wrap}
+.hero-meta .m{font-size:13px;color:var(--dim2);letter-spacing:.4px}
+.hero-meta .m b{display:block;font-family:var(--font-d);font-size:20px;font-weight:700;color:var(--ink);letter-spacing:.04em}
+.scroll-hint{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);z-index:2;color:var(--dim2);font-size:12px;letter-spacing:3px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.scroll-hint::after{content:"";width:1px;height:34px;background:linear-gradient(180deg,var(--dim2),transparent);animation:drop 2.2s var(--ease) infinite}
+@keyframes drop{0%{transform:scaleY(0);transform-origin:top}55%{transform:scaleY(1);transform-origin:top}100%{transform:scaleY(0);transform-origin:bottom}}
+
+/* ============ 通用 section ============ */
+section{position:relative;padding:104px 0}
+.sec-head{text-align:center;max-width:640px;margin:0 auto 56px}
+.sec-kicker{font-family:var(--font-d);font-size:12px;letter-spacing:4px;color:var(--teal);text-transform:uppercase}
+.sec-head h2{font-size:clamp(26px,4vw,38px);font-weight:700;margin:14px 0 10px;letter-spacing:.5px}
+.sec-head p{color:var(--dim);font-size:15.5px;font-weight:300}
+.sec-head h2 em{font-style:normal;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* ============ 功能矩阵（10 卡） ============ */
+.feat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px}
+.feat-card{
+  position:relative;border-radius:var(--r);padding:26px 20px 22px;text-align:center;
+  background:var(--panel);border:1px solid var(--line);
+  backdrop-filter:blur(14px) saturate(1.25);-webkit-backdrop-filter:blur(14px) saturate(1.25);
+  transition:transform .22s var(--ease),border-color .22s var(--ease),box-shadow .22s var(--ease);
+}
+.feat-card::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(200px 120px at 50% 0%,rgba(94,234,212,.12),transparent 72%);
+  opacity:0;transition:opacity .22s var(--ease);
+}
+.feat-card:hover{transform:translateY(-5px);border-color:var(--line2);box-shadow:0 16px 44px rgba(5,12,30,.6),0 0 30px rgba(34,211,238,.12)}
+.feat-card:hover::before{opacity:1}
+.feat-card .f-ico{width:52px;height:52px;margin:0 auto 14px;border-radius:15px;display:grid;place-items:center;
+  background:linear-gradient(145deg,rgba(94,234,212,.14),rgba(124,192,255,.08));border:1px solid var(--line2)}
+.feat-card .f-ico svg{width:26px;height:26px;stroke:var(--teal)}
+.feat-card h3{font-size:16px;font-weight:600;letter-spacing:.3px}
+.feat-card .f-tag{margin-top:6px;font-size:12.5px;color:var(--dim);font-weight:300;line-height:1.55}
+@media(max-width:980px){.feat-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.feat-grid{grid-template-columns:1fr}}
+
+/* ============ 平台横条 ============ */
+.plats{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;counter-reset:p}
+.plat{
+  border-radius:var(--r);padding:26px 18px;text-align:center;position:relative;overflow:hidden;
+  background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  transition:transform .22s var(--ease),border-color .22s var(--ease);
+}
+.plat::after{content:"";position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:0;height:2px;
+  background:var(--grad);transition:width .3s var(--ease)}
+.plat:hover{transform:translateY(-4px);border-color:var(--line2)}
+.plat:hover::after{width:70%}
+.plat .p-no{font-family:var(--font-d);font-size:11px;letter-spacing:2px;color:var(--dim2)}
+.plat h3{margin:9px 0 7px;font-size:17px;font-weight:700;font-family:var(--font-d);letter-spacing:.6px}
+.plat p{font-size:12.5px;color:var(--dim);font-weight:300}
+.plat .p-bar{display:flex;gap:7px;justify-content:center;margin-top:15px}
+.plat .p-bar i{font-style:normal;font-size:11px;letter-spacing:.6px;padding:4px 9px;border-radius:8px;border:1px solid var(--line2);color:var(--teal)}
+@media(max-width:900px){.plats{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:640px){.plats{grid-template-columns:1fr;max-width:360px;margin:0 auto}}
+@media(max-width:640px){
+  .f-tag,.plat p,.feature p,.ch span,.legal{font-size:13.5px}
+}
+
+/* ============ 特性区 ============ */
+.feats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.feature{
+  border-radius:var(--r);padding:26px 22px;border:1px solid var(--line);
+  background:linear-gradient(160deg,rgba(18,30,60,.5),rgba(8,14,30,.55));
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  transition:transform .22s var(--ease),border-color .22s var(--ease);
+}
+.feature:hover{transform:translateY(-4px);border-color:var(--line2)}
+.feature svg{width:30px;height:30px;stroke:var(--cyan);margin-bottom:16px;filter:drop-shadow(0 0 10px rgba(34,211,238,.5))}
+.feature h3{font-size:16.5px;font-weight:600;margin-bottom:8px}
+.feature p{font-size:13px;color:var(--dim);font-weight:300}
+@media(max-width:900px){.feats{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.feats{grid-template-columns:1fr}}
+
+/* ============ 创作者区 ============ */
+.creator{
+  border-radius:26px;border:1px solid var(--line);position:relative;overflow:hidden;
+  background:linear-gradient(165deg,rgba(16,28,58,.66),rgba(7,12,26,.8));
+  backdrop-filter:blur(16px) saturate(1.3);-webkit-backdrop-filter:blur(16px) saturate(1.3);
+  padding:46px 34px;text-align:center;
+}
+.creator::before{content:"";position:absolute;inset:-40% -20% auto;height:240px;
+  background:radial-gradient(420px 200px at 50% 0%,rgba(34,211,238,.2),transparent 70%);pointer-events:none}
+.creator .av{width:78px;height:78px;border-radius:50%;margin:0 auto 16px;overflow:hidden;
+  border:2px solid rgba(94,234,212,.5);box-shadow:0 0 0 6px rgba(94,234,212,.08),0 0 30px rgba(34,211,238,.3)}
+.creator .av img{width:100%;height:100%;object-fit:cover;display:block}
+.creator h3{font-size:23px;font-weight:700;letter-spacing:2px}
+.creator .role{margin-top:6px;font-size:13px;color:var(--teal);letter-spacing:1.6px}
+.ch-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:30px}
+.ch{
+  border-radius:15px;padding:17px 10px;cursor:pointer;text-align:center;
+  border:1px solid var(--line);background:rgba(9,16,34,.62);transition:transform .2s var(--ease),border-color .2s var(--ease),background .2s var(--ease);
+}
+.ch:hover{transform:translateY(-3px);border-color:var(--cyan);background:rgba(20,36,66,.7)}
+.ch svg{width:24px;height:24px;stroke:var(--teal);margin-bottom:9px}
+.ch b{display:block;font-size:14.5px;font-weight:600}
+.ch span{display:block;font-size:12px;color:var(--dim);margin-top:3px;font-weight:300}
+.ch.q svg{stroke:#62b6ff}.ch.dy svg{stroke:#ff8fa8}.ch.ks svg{stroke:#ffc46b}.ch.web svg{stroke:#a78bfa}
+@media(max-width:560px){.ch-grid{grid-template-columns:1fr;max-width:340px;margin:30px auto 0}}
+
+/* ============ 合规 / footer ============ */
+.legal{
+  margin-top:90px;padding:26px;border-radius:var(--r);border:1px dashed var(--line2);
+  background:rgba(9,16,34,.4);font-size:12.5px;color:var(--dim);font-weight:300;line-height:1.9;
+}
+footer{padding:44px 0 54px;text-align:center;border-top:1px solid var(--line);color:var(--dim2);font-size:12.5px}
+footer .f-brand{font-family:var(--font-d);font-size:15px;letter-spacing:2px;color:var(--ink);margin-bottom:8px}
+
+/* ============ reveal ============ */
+.rv{opacity:0;transform:translateY(26px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
+.rv.on{opacity:1;transform:none}
+.d1{transition-delay:.05s}.d2{transition-delay:.12s}.d3{transition-delay:.19s}.d4{transition-delay:.26s}
+
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  .rv{opacity:1;transform:none}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== 顶栏 ===== -->
+<nav class="nav" aria-label="主导航">
+  <a class="nav-logo" href="#top" aria-label="REBox 首页">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#5eead4" stroke-width="1.7" stroke-linejoin="round"><path d="M12 2.8 20.2 7.2v9.6L12 21.2 3.8 16.8V7.2z"/><circle cx="12" cy="12" r="4.2" stroke="#22d3ee"/><path d="m8.6 12 3.4-3.4L15.4 12M8.6 12l3.4 3.4L15.4 12" stroke="#7cc0ff"/></svg>
+    <b>REBox</b>
+  </a>
+  <div class="nav-links">
+    <a href="#feats">功能</a>
+    <a href="#plats">平台</a>
+    <a href="#about">创作者</a>
+    <a href="#legal">合规</a>
+  </div>
+  <a class="nav-dl" href="REBox-精简版.zip">下载</a>
+</nav>
+
+<!-- ===== Hero ===== -->
+<header class="hero" id="top">
+  <canvas id="neb" aria-hidden="true"></canvas>
+  <div class="hero-in">
+    <span class="hero-badge"><i></i>REVERSE · PACK · SHIP</span>
+    <div class="hero-ico"><img src="assets/icon.png" alt="REBox 图标"></div>
+    <h1>REBox</h1>
+    <p class="tag">五大平台 <b>一键反编译</b> · <b>一键打包</b> —— 液态玻璃界面，科幻般顺滑</p>
+    <div class="hero-cta">
+      <a class="btn btn-pri" href="REBox-精简版.zip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0 4-4m-4 4-4-4M4 19h16"/></svg>
+        下载 REBox
+      </a>
+      <a class="btn btn-ghost" href="#feats">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+        了解功能
+      </a>
+    </div>
+    <p class="dl-note">完整版压缩包：解压后双击 REBox.exe 即可运行，工具链首次运行自动补齐</p>
+    <div class="hero-meta">
+      <div class="m"><b>5</b>平台支持</div>
+      <div class="m"><b>10</b>一键能力</div>
+      <div class="m"><b>0</b>配置门槛</div>
+    </div>
+  </div>
+  <div class="scroll-hint">滚动探索</div>
+</header>
+
+<!-- ===== 功能矩阵 ===== -->
+<main>
+<section id="feats" class="wrap">
+  <div class="sec-head rv">
+    <div class="sec-kicker">Capabilities</div>
+    <h2>五大平台 · <em>十种能力</em></h2>
+    <p>反编译与打包一一对应，全部一键完成。深挖 Python 归档、APK 资源回编译、鸿蒙 HAP、Linux 发行包与苹果软件包。</p>
+  </div>
+  <div class="feat-grid">
+    <div class="feat-card rv d1"><div class="f-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5 12 4.5 20 8.5v7L12 20l-8-4.5z"/><path d="M12 15V8.8m0 0-2.4 2.4M12 8.8l2.4 2.4"/></svg></div><h3>EXE 反编译</h3><div class="f-tag">PE 识别 · PyInstaller 归档提取 · pyc 还原</div></div>
+    <div class="feat-card rv d2"><div class="f-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5 12 4.5 20 8.5v7L12 20l-8-4.5z"/><path d="M12 8.5V15m0 0 2.4-2.4M12 15l-2.4-2.4"/></svg></div><h3>EXE 一键打包</h3><div class="f-tag">PyInstaller 单目录打包 · 开箱即用</div></div>
+    <div class="feat-card rv d3"><div class="f-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5 12 4.5 20 8.5v7L12 20l-8-4.5z"/><path d="M12 15V8.8m0 0-2.4 2.4M12 8.8l2.4 2.4"/></svg></div><h3>APK 反编译</h3><div class="f-tag">apktool 解包 · 资源与源码反编译</div></div>
+    <div class="feat-card rv d4"><div class="f-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5 12 4.5 20 8.5v7L12 20l-8-4.5z"/><path d="M12 8.5V15m0 0 2.4-2.4M12 15l-2.4-2.4"/></svg></div><h3>APK 一键打包</h3><div class="f-tag">回编译 · zipalign · 签名，产出可安装包</div></div>
+    <div class="feat-card rv d1"><div class="f-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5 12 4.5 20 8.5v7L12 20l-8-4.5z"/><path d="M12 15V8.8m0 0-2.4 2.4M12 8.8l2.4 2.4"/></svg></div><h3>HAP 反编译</h3><div class="f-tag">鸿蒙包解包 · 内部 DEX 反编译</div></div>
+    <div class="feat-card rv d2"><div class="f-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5 12 4.5 20 8.5v7L12 20l-8-4.5z"/><path d="M12 8.5V15m0 0 2.4-2.4M12 15l-2.4-2.4"/></svg></div><h3>HAP 一键打包</h3><div class="f-tag">重新归档 · 真机签名指引</div></div>
+    <div class="feat-card rv d3"><div class="f-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5 12 4.5 20 8.5v7L12 20l-8-4.5z"/><path d="M12 15V8.8m0 0-2.4 2.4M12 8.8l2.4 2.4"/></svg></div><h3>Linux 反编译</h3><div class="f-tag">deb / rpm / AppImage 解包 · ELF 分析</div></div>
+    <div class="feat-card rv d4"><div class="f-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5 12 4.5 20 8.5v7L12 20l-8-4.5z"/><path d="M12 8.5V15m0 0 2.4-2.4M12 15l-2.4-2.4"/></svg></div><h3>Linux 一键打包</h3><div class="f-tag">tar.gz / deb 结构 · 启动脚本</div></div>
+    <div class="feat-card rv d1"><div class="f-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5 12 4.5 20 8.5v7L12 20l-8-4.5z"/><path d="M12 15V8.8m0 0-2.4 2.4M12 8.8l2.4 2.4"/></svg></div><h3>苹果反编译</h3><div class="f-tag">ipa / dmg / app / pkg 解包 · Mach-O 分析</div></div>
+    <div class="feat-card rv d2"><div class="f-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5 12 4.5 20 8.5v7L12 20l-8-4.5z"/><path d="M12 8.5V15m0 0 2.4-2.4M12 15l-2.4-2.4"/></svg></div><h3>苹果一键打包</h3><div class="f-tag">.app 结构 · zip 归档 · 部署脚本</div></div>
+  </div>
+</section>
+
+<!-- ===== 平台 ===== -->
+<section id="plats" class="wrap">
+  <div class="sec-head rv">
+    <div class="sec-kicker">Platforms</div>
+    <h2>覆盖主流软件形态</h2>
+    <p>从 Windows 可执行文件到鸿蒙、Linux 与 macOS 生态，一条流水线全部吃下。</p>
+  </div>
+  <div class="plats">
+    <div class="plat rv d1"><div class="p-no">01</div><h3>EXE</h3><p>.exe · PE / .NET</p><div class="p-bar"><i>反编译</i><i>打包</i></div></div>
+    <div class="plat rv d2"><div class="p-no">02</div><h3>APK</h3><p>.apk · Android</p><div class="p-bar"><i>反编译</i><i>签名打包</i></div></div>
+    <div class="plat rv d3"><div class="p-no">03</div><h3>HAP</h3><p>.hap · HarmonyOS</p><div class="p-bar"><i>反编译</i><i>打包</i></div></div>
+    <div class="plat rv d4"><div class="p-no">04</div><h3>LINUX</h3><p>.deb / .rpm / AppImage</p><div class="p-bar"><i>反编译</i><i>打包</i></div></div>
+    <div class="plat rv d1"><div class="p-no">05</div><h3>macOS</h3><p>.ipa / .dmg / .app / .pkg</p><div class="p-bar"><i>反编译</i><i>打包</i></div></div>
+  </div>
+</section>
+
+<!-- ===== 特性 ===== -->
+<section class="wrap">
+  <div class="sec-head rv">
+    <div class="sec-kicker">Experience</div>
+    <h2>为效率与安全感设计</h2>
+  </div>
+  <div class="feats">
+    <div class="feature rv d1">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8 20.2 7.2v9.6L12 21.2 3.8 16.8V7.2z"/><path d="M8 12h8M12 8v8"/></svg>
+      <h3>液态玻璃界面</h3><p>圆润无边框窗口，动态渐变主题，克制的过渡动画，观感与手感都像科幻工具。</p>
+    </div>
+    <div class="feature rv d2">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
+      <h3>工具链一键检测</h3><p>Java / Python / apktool / jadx / Ghidra / 7-Zip 自动探测，缺什么补什么。</p>
+    </div>
+    <div class="feature rv d3">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4M5.3 5.3l2.8 2.8M15.9 15.9l2.8 2.8M18.7 5.3l-2.8 2.8M8.1 15.9l-2.8 2.8"/></svg>
+      <h3>个性化主题</h3><p>四套深空渐变、自定义背景与高斯模糊强度，把工具调成你自己的颜色。</p>
+    </div>
+    <div class="feature rv d4">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5.2c0 4.2 3 7.4 7 9 4-1.6 7-4.8 7-9V6z"/><path d="m9 11.5 2.2 2.2L15.5 9.5"/></svg>
+      <h3>合规优先</h3><p>内置合规承诺与用途声明：仅限自有、授权与学习研究场景使用。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 创作者 ===== -->
+<section id="about" class="wrap">
+  <div class="creator rv">
+    <div class="av"><img src="assets/avatar.png" alt="创作者头像"></div>
+    <h3>解域江安</h3>
+    <div class="role">REBOX · CREATOR</div>
+    <div class="ch-grid">
+      <div class="ch q" data-channel="qq" role="button" tabindex="0">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.4"/><path d="M8.2 15.4c1 1.3 2.3 2 3.8 2s2.8-.7 3.8-2M8.8 10.4v.6M15.2 10.4v.6M12 15.4v-4"/></svg>
+        <b>QQ 交流群</b><span>1124717353</span>
+      </div>
+      <div class="ch dy" data-channel="dy" role="button" tabindex="0">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="4.5" width="15" height="15" rx="4"/><path d="M10.2 9.2v5.6M10.2 9.2l5 2.8-5 2.8"/></svg>
+        <b>抖音</b><span>解域江安</span>
+      </div>
+      <div class="ch ks" data-channel="ks" role="button" tabindex="0">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="16" rx="3.5"/><path d="M8.8 7h6.4M8.8 12h6.4M8.8 17h3"/></svg>
+        <b>快手</b><span>解安</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 合规 ===== -->
+<section id="legal" class="wrap" style="padding-top:20px">
+  <div class="legal rv">
+    <b>合规声明</b> —— REBox 仅面向学习研究、自有软件与已获授权软件使用。请遵守目标软件许可协议及当地法律法规，勿用于破解商业软件或侵权用途。随包工具均为开源社区软件，版权归各自作者所有。
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="f-brand">REBOX · 逆向打包工具箱</div>
+  <div>创作者：解域江安 ｜ QQ 交流群 1124717353 ｜ 抖音：解域江安 ｜ 快手：解安</div>
+  <div style="margin-top:6px">© 2026 REBox · 仅供学习研究使用</div>
+</footer>
+
+<!-- ===== 星云 canvas ===== -->
+<script>
+(function(){
+  var cv=document.getElementById('neb');var c2d=cv.getContext('2d');
+  var W,H,stars=[],mx=0,my=0,moving=false;
+  function resize(){
+    W=cv.width=Math.floor(cv.clientWidth);H=cv.height=Math.floor(cv.clientHeight);
+    stars=[];var n=Math.min(150,Math.floor(W*H/16000));
+    for(var i=0;i<n;i++){
+      stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.3+.35,
+        a:Math.random()*.5+.12,da:(Math.random()-.5)*.008,sp:Math.random()*.12+.02});
+    }
+  }
+  function frame(){
+    c2d.clearRect(0,0,W,H);
+    var px=moving?mx:0,py=moving?my:0;
+    for(var i=0;i<stars.length;i++){
+      var s=stars[i];
+      s.a+=s.da;if(s.a<.08){s.a=.08;s.da=Math.abs(s.da)}if(s.a>.6){s.a=.6;s.da=-Math.abs(s.da)}
+      var x=s.x-px*s.sp*30,y=s.y-py*s.sp*30;
+      c2d.beginPath();c2d.arc(x,y,s.r,0,6.2832);
+      c2d.fillStyle='rgba(150,225,235,'+s.a.toFixed(3)+')';c2d.fill();
+    }
+    requestAnimationFrame(frame);
+  }
+  window.addEventListener('resize',resize);
+  cv.parentElement.addEventListener('mousemove',function(e){
+    var r=cv.getBoundingClientRect();
+    mx=(e.clientX-r.left)/r.width-.5;my=(e.clientY-r.top)/r.height-.5;moving=true;
+  });
+  cv.parentElement.addEventListener('mouseleave',function(){moving=false});
+  var rm=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(rm){resize();
+    for(var i=0;i<stars.length;i++){var s=stars[i];c2d.beginPath();c2d.arc(s.x,s.y,s.r,0,6.2832);c2d.fillStyle='rgba(150,225,235,.5)';c2d.fill();}
+  }else{resize();frame();}
+})();
+</script>
+
+<!-- ===== reveal + 渠道交互 ===== -->
+<script>
+(function(){
+  var io=new IntersectionObserver(function(es){
+    es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('on');io.unobserve(e.target);}});
+  },{threshold:.15});
+  document.querySelectorAll('.rv').forEach(function(el){io.observe(el)});
+
+  var toast=null;
+  function show(msg){
+    if(!toast){toast=document.createElement('div');toast.style.cssText='position:fixed;left:50%;bottom:34px;transform:translateX(-50%);z-index:99;padding:11px 20px;border-radius:12px;font-size:13.5px;color:#03211c;background:linear-gradient(135deg,#5eead4,#22d3ee 55%,#7cc0ff);box-shadow:0 10px 30px rgba(34,211,238,.4);opacity:0;transition:opacity .25s var(--ease),transform .25s var(--ease);';document.body.appendChild(toast);}
+    toast.textContent=msg;toast.style.opacity='1';toast.style.transform='translateX(-50%) translateY(0)';
+    clearTimeout(toast._t);toast._t=setTimeout(function(){toast.style.opacity='0'},2600);
+  }
+  function copy(txt,ok){
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(ok,function(){fallbackCopy(txt,ok)});
+    }else fallbackCopy(txt,ok);
+  }
+  function fallbackCopy(txt,ok){
+    var ta=document.createElement('textarea');ta.value=txt;ta.style.cssText='position:fixed;opacity:0';
+    document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy');ok();}catch(e){show('复制失败，请手动记录 '+txt)}
+    document.body.removeChild(ta);
+  }
+  function open(u){window.open(u,'_blank','noopener')}
+  document.querySelectorAll('[data-dl]').forEach(function(el){
+    function act(){
+      copy('1124717353',function(){show('群号已复制：1124717353，进群后于群文件下载完整版');open('https://qun.qq.com/')});
+    }
+    el.addEventListener('click',act);
+    el.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();act();}});
+  });
+  document.querySelectorAll('[data-channel]').forEach(function(el){
+    function act(){
+      var k=el.getAttribute('data-channel');
+      if(k==='qq'){copy('1124717353',function(){show('QQ 群号已复制：1124717353');open('https://qun.qq.com/')});}
+      else if(k==='dy'){open('https://www.douyin.com/search/解域江安')}
+      else if(k==='ks'){open('https://www.kuaishou.com/search/解安')}
+    }
+    el.addEventListener('click',act);
+    el.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();act();}});
+  });
+})();
+</script>
+
+</body>
+</html>
+
+</body>
+</html>
