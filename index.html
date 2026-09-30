@@ -121,6 +121,13 @@ a{color:var(--cyan);text-decoration:none}
 .btn-ghost{color:var(--ink);border:1px solid var(--line2);background:rgba(10,20,44,.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 .btn-ghost:hover{transform:translateY(-2px);border-color:var(--cyan);box-shadow:0 10px 30px rgba(34,211,238,.16)}
 .dl-note{margin-top:16px;font-size:12.5px;color:var(--dim2);font-weight:300;letter-spacing:.3px}
+.dl-tip{
+  margin-top:14px;display:inline-flex;align-items:center;gap:9px;
+  font-size:13px;color:var(--teal);font-weight:400;letter-spacing:.4px;
+  padding:10px 18px;border-radius:999px;border:1px solid rgba(94,234,212,.32);
+  background:rgba(94,234,212,.07);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+}
+.dl-tip i{width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 10px var(--teal);animation:pulse 2s ease-in-out infinite}
 .hero-meta{display:flex;gap:26px;justify-content:center;margin-top:52px;flex-wrap:wrap}
 .hero-meta .m{font-size:13px;color:var(--dim2);letter-spacing:.4px}
 .hero-meta .m b{display:block;font-family:var(--font-d);font-size:20px;font-weight:700;color:var(--ink);letter-spacing:.04em}
@@ -256,7 +263,7 @@ footer .f-brand{font-family:var(--font-d);font-size:15px;letter-spacing:2px;colo
     <a href="#about">创作者</a>
     <a href="#legal">合规</a>
   </div>
-  <a class="nav-dl" href="REBox-精简版.zip">下载</a>
+  <a class="nav-dl" href="#dl" data-dl="zip">下载</a>
 </nav>
 
 <!-- ===== Hero ===== -->
@@ -268,16 +275,17 @@ footer .f-brand{font-family:var(--font-d);font-size:15px;letter-spacing:2px;colo
     <h1>REBox</h1>
     <p class="tag">五大平台 <b>一键反编译</b> · <b>一键打包</b> —— 液态玻璃界面，科幻般顺滑</p>
     <div class="hero-cta">
-      <a class="btn btn-pri" href="REBox-精简版.zip">
+      <a class="btn btn-pri" href="#dl" data-dl="zip">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0 4-4m-4 4-4-4M4 19h16"/></svg>
-        下载 REBox
+        获取下载
       </a>
       <a class="btn btn-ghost" href="#feats">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
         了解功能
       </a>
     </div>
-    <p class="dl-note">完整版压缩包：解压后双击 REBox.exe 即可运行，工具链首次运行自动补齐</p>
+    <p class="dl-note">软件包通过 QQ 交流群分发：点击「获取下载」复制群号 1124717353，进群后从群文件下载完整版（解压即用）</p>
+    <div class="dl-tip"><i></i>首次使用请等待左下角「工具栏」全部变绿，再开始操作</div>
     <div class="hero-meta">
       <div class="m"><b>5</b>平台支持</div>
       <div class="m"><b>10</b>一键能力</div>
